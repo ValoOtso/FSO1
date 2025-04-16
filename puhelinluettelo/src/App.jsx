@@ -1,10 +1,10 @@
-import { use, useState } from 'react'
+import { use, useEffect, useState } from 'react'
+
+import personService from './services/persons'
 
 const Persons = (props) => {
   return (
-    <ul>
-      {props.namesToShow.map((person, index) => <li key={index}>{person.name} {person.number}</li>)}
-    </ul>
+      <li>{props.name} {props.number} <button onClick={props.deletePerson}>delete</button></li>
   )
 }
 
@@ -37,16 +37,22 @@ const Filter = (props) => {
 }
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456' },
-    { name: 'Ada Lovelace', number: '39-44-5323523' },
-    { name: 'Dan Abramov', number: '12-43-234345' },
-    { name: 'Mary Poppendieck', number: '39-23-6423122' }
-  ]) 
+  
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filterWith, setFilterWith] = useState('')
-  const [showAll, setShowAll] = useState(true)
+
+  const hook = () => {
+    personService
+      .getAll()
+      .then(initialPersons => {
+        setPersons(initialPersons)
+      }
+    )
+  }
+
+  useEffect(hook, [])
 
   const handleNameChange = (event)=> {
     setNewName(event.target.value)
@@ -63,12 +69,46 @@ const App = () => {
       number: newNumber
     }
     if (persons.map(person => person.name).indexOf(newName) != -1){
-      alert(`${newName} is alredy added to phonebook`)
-    }else(setPersons(persons.concat(personObject)))
+      const confirm = window.confirm(`${newName} is alredy added to phonebook. Do you want to replace the old number with a new one? `)
+      if (confirm) {
+        const personToChange = persons.find(p => p.name === newName)
+        const newObject = {
+          id: personToChange.id,
+          name: personToChange.name,
+          number: newNumber
+        }
+        personService
+        .changeNumber(personToChange.id, newObject)
+        .then(returnedPerson => {
+          setPersons(persons.map(person => person.id !== personToChange.id ? person : returnedPerson))
+        })
+      }
+    }else(
+      personService
+      .create(personObject)
+      .then(returnedPerson => {
+        setPersons(persons.concat(returnedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+    )
     setNewName('')
     setNewNumber('')
   }
 
+  const deletePerson = (id) => {
+    const personToDelete = persons.find(p => p.id === id)
+    const confirm = window.confirm(`Do you really want to delete person ${personToDelete.name}`)
+
+    if (confirm){
+      personService
+      .deletePerson(id)
+      .then(responseData => {
+        setPersons(persons.filter(person => person.id !== id))
+      })
+    }
+  }
+  
   const handleFilterChange = (event) => {
     setFilterWith(event.target.value)
   };
@@ -91,10 +131,17 @@ const App = () => {
       handleNumberChange = {handleNumberChange}
       />
       <h2>Numbers</h2>
-      <Persons namesToShow = {namesToShow} />
+      <ul>
+      {namesToShow.map((person) => 
+      <Persons 
+      key = {person.id}
+      name = {person.name}
+      number = {person.number} 
+      deletePerson = {() => deletePerson(person.id)}/>
+      )}
+      </ul>
     </div>
   )
-
 }
 
 export default App
