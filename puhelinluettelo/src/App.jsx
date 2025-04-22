@@ -1,5 +1,7 @@
 import { use, useEffect, useState } from 'react'
 
+import './index.css'
+
 import personService from './services/persons'
 
 const Persons = (props) => {
@@ -14,6 +16,7 @@ const PersonForm = (props) => {
       name: <input 
       value={props.newName}
       onChange={props.handleNameChange}
+    
       />
       number: <input
       value={props.newNumber}
@@ -36,12 +39,30 @@ const Filter = (props) => {
   
 }
 
+const Notification = ({message}) => {
+  if (message === null){
+    return null
+  }
+
+  return (<div className='notification'>{message}</div>)
+}
+
+const ErrorNotification = ({errorMessage}) => {
+  if (errorMessage === null){
+    return null
+  }
+
+  return (<div className='error'>{errorMessage}</div>)
+}
+
 const App = () => {
   
   const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filterWith, setFilterWith] = useState('')
+  const [message, setMessage] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
 
   const hook = () => {
     personService
@@ -81,6 +102,20 @@ const App = () => {
         .changeNumber(personToChange.id, newObject)
         .then(returnedPerson => {
           setPersons(persons.map(person => person.id !== personToChange.id ? person : returnedPerson))
+          setMessage(
+            `${personToChange.name}'s number changed`
+          )
+          setTimeout(() => {
+            setMessage(null)
+          }, 5000)
+        })
+        .catch(error => {
+          setErrorMessage(
+            `Information of ${personToChange.name} has alredy been removed from server`
+          )
+          setTimeout(() => {
+            setErrorMessage(null)
+          }, 5000)
         })
       }
     }else(
@@ -88,6 +123,12 @@ const App = () => {
       .create(personObject)
       .then(returnedPerson => {
         setPersons(persons.concat(returnedPerson))
+        setMessage(
+          `${returnedPerson.name} added`
+        )
+        setTimeout(() => {
+          setMessage(null)
+        }, 5000)
         setNewName('')
         setNewNumber('')
       })
@@ -106,6 +147,10 @@ const App = () => {
       .then(responseData => {
         setPersons(persons.filter(person => person.id !== id))
       })
+      setMessage(`${personToDelete.name} deleted`)
+      setTimeout(() => {
+        setMessage(null)
+      }, 5000)
     }
   }
   
@@ -120,6 +165,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message = {message}/>
+      <ErrorNotification errorMessage={errorMessage}/>
       <Filter filterWith = {filterWith}
         handleFilterChange = {handleFilterChange}
       />
