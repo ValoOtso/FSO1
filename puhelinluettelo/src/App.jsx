@@ -129,12 +129,11 @@ const App = () => {
         setTimeout(() => {
           setMessage(null)
         }, 5000)
-        setNewName('')
-        setNewNumber('')
       })
       .catch(error => {
+        const em = error.response.data.error
         setErrorMessage(
-          `${error.response.data}`
+          em
         )
         setTimeout(() => {
           setErrorMessage(null)
